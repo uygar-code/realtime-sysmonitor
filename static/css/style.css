@@ -1,0 +1,435 @@
+/* ---------------------------------------------------------------------------
+   Theming.
+
+   Every colour is a custom property declared on :root (dark) and overridden by
+   [data-theme="light"]. Switching themes is therefore a single attribute change
+   on <html>, with no per-element class juggling. Chart.js can't read CSS
+   variables directly, so charts.js resolves these same tokens via
+   getComputedStyle and re-applies them on theme change.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #0f1419;
+  --bg-elevated: #161d26;
+  --bg-inset: #0b0f14;
+  --border: #232d3a;
+  --text: #e6edf3;
+  --text-muted: #8b98a9;
+
+  --accent-cpu: #4dabf7;
+  --accent-ram: #9775fa;
+  --accent-disk: #ffa94d;
+  --accent-net: #38d9a9;
+
+  --ok: #51cf66;
+  --warn: #fcc419;
+  --danger: #ff6b6b;
+
+  --grid: rgba(255, 255, 255, 0.07);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --radius: 10px;
+}
+
+[data-theme="light"] {
+  --bg: #f4f6f9;
+  --bg-elevated: #ffffff;
+  --bg-inset: #eceff3;
+  --border: #d8dee6;
+  --text: #1a212b;
+  --text-muted: #667085;
+
+  --accent-cpu: #1971c2;
+  --accent-ram: #6741d9;
+  --accent-disk: #e8590c;
+  --accent-net: #099268;
+
+  --ok: #2f9e44;
+  --warn: #e67700;
+  --danger: #e03131;
+
+  --grid: rgba(0, 0, 0, 0.08);
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+h1, h2 { margin: 0; font-weight: 600; }
+
+.muted { color: var(--text-muted); }
+
+/* Visible keyboard focus everywhere, since we restyle native controls. */
+:focus-visible {
+  outline: 2px solid var(--accent-cpu);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------- topbar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand h1 { font-size: 17px; letter-spacing: -0.01em; }
+
+.machine {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+
+.status[data-state="live"] .status-dot {
+  background: var(--ok);
+  /* Gentle pulse signals "data is flowing" without being distracting. */
+  animation: pulse 2s ease-in-out infinite;
+}
+.status[data-state="connecting"] .status-dot { background: var(--warn); }
+.status[data-state="offline"] .status-dot { background: var(--danger); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .status[data-state="live"] .status-dot { animation: none; }
+  * { transition: none !important; }
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+select, input[type="number"] {
+  background: var(--bg-inset);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+input[type="number"] { width: 68px; }
+
+.icon-btn {
+  background: var(--bg-inset);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.icon-btn:hover { border-color: var(--accent-cpu); }
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--accent-cpu);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------------- settings panel */
+
+.settings-panel {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 13px 22px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.setting label { color: var(--text-muted); }
+.setting .unit { color: var(--text-muted); font-size: 12px; }
+.setting-checkbox label { cursor: pointer; }
+
+/* ------------------------------------------------------------ alert banner */
+
+.alert-banner {
+  margin: 0;
+  padding: 11px 22px;
+  background: color-mix(in srgb, var(--danger) 15%, var(--bg));
+  border-bottom: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------- dashboard */
+
+.dashboard {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.card, .panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card {
+  padding: 15px 17px;
+  /* Border colour flips to danger when a threshold alert fires. */
+  transition: border-color 0.25s ease;
+}
+
+.card.alerting {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-elevated));
+}
+
+.card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card h2 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.card-sub { font-size: 11px; color: var(--text-muted); }
+
+.metric {
+  margin: 8px 0 10px;
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1;
+  /* Tabular figures stop the number jittering as digits change each second. */
+  font-variant-numeric: tabular-nums;
+}
+
+.metric .unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+#card-cpu .metric { color: var(--accent-cpu); }
+#card-ram .metric { color: var(--accent-ram); }
+#card-disk .metric { color: var(--accent-disk); }
+#card-net .metric { color: var(--accent-net); }
+
+.meter {
+  height: 5px;
+  background: var(--bg-inset);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--ok);
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.split-stat {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.split-stat b { color: var(--text); font-weight: 600; }
+
+/* -------------------------------------------------------------- chart panels */
+
+.panel { padding: 15px 17px 17px; }
+
+.panel h2 {
+  font-size: 13px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.panel h2 small { color: var(--text-muted); font-weight: 500; font-size: 11px; }
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 14px;
+}
+
+.split-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 14px;
+}
+
+/* Fixed height + Chart.js maintainAspectRatio:false keeps the canvas from
+   growing on every resize/redraw cycle. */
+.chart-box { position: relative; height: 190px; }
+.chart-box-tall { height: 300px; }
+
+/* ------------------------------------------------------------ process table */
+
+.proc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.proc-table th,
+.proc-table td {
+  text-align: left;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.proc-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.proc-table .num { text-align: right; }
+.proc-table tbody tr:last-child td { border-bottom: none; }
+.proc-table .empty td { color: var(--text-muted); text-align: center; padding: 18px; }
+.proc-table .name { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- partitions */
+
+.partitions { display: flex; flex-direction: column; gap: 13px; }
+
+.partition-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.partition-label .mount { font-weight: 600; }
+.partition-label .size { color: var(--text-muted); }
+
+/* ---------------------------------------------------------------- alert log */
+
+.alert-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 12.5px;
+}
+
+.alert-log li {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 9px;
+}
+
+.alert-log li:last-child { border-bottom: none; }
+.alert-log time { color: var(--text-muted); flex: none; font-variant-numeric: tabular-nums; }
+.alert-log .lvl-danger { color: var(--danger); font-weight: 600; }
+.alert-log .lvl-ok { color: var(--ok); font-weight: 600; }
+
+/* -------------------------------------------------------------------- footer */
+
+.footer {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 620px) {
+  .topbar { padding: 12px 14px; }
+  .dashboard { padding: 14px; }
+  .metric { font-size: 26px; }
+}

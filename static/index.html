@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Monitor &middot; Live</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <!-- Chart.js, pinned. No build step: the CDN ships a ready-to-use UMD bundle. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <h1>System Monitor</h1>
+      <p class="machine" id="machine-line">Loading machine info&hellip;</p>
+    </div>
+
+    <div class="topbar-right">
+      <span class="status" id="status" data-state="connecting">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="status-text">Connecting</span>
+      </span>
+
+      <label class="control">
+        <span>Interval</span>
+        <select id="interval-select" aria-label="Sampling interval">
+          <option value="500">0.5s</option>
+          <option value="1000" selected>1s</option>
+          <option value="2000">2s</option>
+          <option value="5000">5s</option>
+        </select>
+      </label>
+
+      <button id="settings-toggle" class="icon-btn" aria-expanded="false"
+              aria-controls="settings-panel" title="Alert thresholds">Alerts</button>
+
+      <button id="theme-toggle" class="icon-btn" title="Toggle light/dark theme"
+              aria-label="Toggle light or dark theme">
+        <span id="theme-icon">&#9788;</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Threshold configuration, collapsed by default -->
+  <section id="settings-panel" class="settings-panel" hidden>
+    <div class="setting">
+      <label for="cpu-threshold">CPU alert above</label>
+      <input type="number" id="cpu-threshold" min="1" max="100" step="1" value="85" />
+      <span class="unit">%</span>
+    </div>
+    <div class="setting">
+      <label for="ram-threshold">RAM alert above</label>
+      <input type="number" id="ram-threshold" min="1" max="100" step="1" value="90" />
+      <span class="unit">%</span>
+    </div>
+    <div class="setting">
+      <label for="sustain-count">Sustained for</label>
+      <input type="number" id="sustain-count" min="1" max="30" step="1" value="3" />
+      <span class="unit">samples</span>
+    </div>
+    <div class="setting setting-checkbox">
+      <input type="checkbox" id="notify-toggle" />
+      <label for="notify-toggle">Desktop notifications</label>
+    </div>
+    <button id="clear-alerts" class="text-btn">Clear alert log</button>
+  </section>
+
+  <!-- Live region so screen readers announce threshold breaches -->
+  <div id="alert-banner" class="alert-banner" role="status" aria-live="polite" hidden></div>
+
+  <main class="dashboard">
+
+    <!-- ---------------------------------------------------------- stat cards -->
+    <section class="cards" aria-label="Current usage summary">
+      <article class="card" id="card-cpu">
+        <header><h2>CPU</h2><span class="card-sub" id="cpu-sub">&mdash;</span></header>
+        <p class="metric"><span id="cpu-value">0.0</span><span class="unit">%</span></p>
+        <div class="meter"><div class="meter-fill" id="cpu-meter"></div></div>
+      </article>
+
+      <article class="card" id="card-ram">
+        <header><h2>Memory</h2><span class="card-sub" id="ram-sub">&mdash;</span></header>
+        <p class="metric"><span id="ram-value">0.0</span><span class="unit">%</span></p>
+        <div class="meter"><div class="meter-fill" id="ram-meter"></div></div>
+      </article>
+
+      <article class="card" id="card-disk">
+        <header><h2>Disk I/O</h2><span class="card-sub" id="disk-sub">&mdash;</span></header>
+        <p class="metric"><span id="disk-value">0.00</span><span class="unit">MB/s</span></p>
+        <div class="split-stat">
+          <span>R <b id="disk-read">0.00</b></span>
+          <span>W <b id="disk-write">0.00</b></span>
+        </div>
+      </article>
+
+      <article class="card" id="card-net">
+        <header><h2>Network</h2><span class="card-sub" id="net-sub">&mdash;</span></header>
+        <p class="metric"><span id="net-value">0.0</span><span class="unit">KB/s</span></p>
+        <div class="split-stat">
+          <span>&darr; <b id="net-down">0.0</b></span>
+          <span>&uarr; <b id="net-up">0.0</b></span>
+        </div>
+      </article>
+    </section>
+
+    <!-- ------------------------------------------------------------- charts -->
+    <section class="chart-grid" aria-label="Usage over time">
+      <article class="panel">
+        <h2>CPU usage <small>%</small></h2>
+        <div class="chart-box"><canvas id="chart-cpu" aria-label="CPU usage over time" role="img"></canvas></div>
+      </article>
+
+      <article class="panel">
+        <h2>Memory usage <small>%</small></h2>
+        <div class="chart-box"><canvas id="chart-memory" aria-label="Memory usage over time" role="img"></canvas></div>
+      </article>
+
+      <article class="panel">
+        <h2>Disk throughput <small>MB/s</small></h2>
+        <div class="chart-box"><canvas id="chart-disk" aria-label="Disk throughput over time" role="img"></canvas></div>
+      </article>
+
+      <article class="panel">
+        <h2>Network throughput <small>KB/s</small></h2>
+        <div class="chart-box"><canvas id="chart-network" aria-label="Network throughput over time" role="img"></canvas></div>
+      </article>
+    </section>
+
+    <!-- --------------------------------------------------- cores + processes -->
+    <section class="split-grid">
+      <article class="panel">
+        <h2>Per-core load <small id="core-count-label"></small></h2>
+        <div class="chart-box chart-box-tall">
+          <canvas id="chart-cores" aria-label="CPU load per logical core" role="img"></canvas>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Top processes</h2>
+        <table class="proc-table">
+          <thead>
+            <tr><th scope="col">PID</th><th scope="col">Name</th>
+                <th scope="col" class="num">CPU %</th><th scope="col" class="num">RAM</th></tr>
+          </thead>
+          <tbody id="proc-body">
+            <tr class="empty"><td colspan="4">Waiting for data&hellip;</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+
+    <!-- ------------------------------------------------- disks + alert log -->
+    <section class="split-grid">
+      <article class="panel">
+        <h2>Disk capacity</h2>
+        <div id="partitions" class="partitions">
+          <p class="muted">Waiting for data&hellip;</p>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Alert log</h2>
+        <ul id="alert-log" class="alert-log">
+          <li class="muted">No alerts yet.</li>
+        </ul>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <span id="footer-stats">&mdash;</span>
+    </footer>
+  </main>
+
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
