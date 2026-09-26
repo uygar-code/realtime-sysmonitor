@@ -4,6 +4,8 @@ A **browser-based Task Manager** that streams live CPU, memory, disk, and networ
 
 Built with **Python (FastAPI + psutil)**, served over a persistent WebSocket connection, and rendered with **Chart.js** — no build tools required.
 
+🚀 **Live demo**: https://realtime-sysmonitor.onrender.com/
+
 ---
 
 ## What It Does
